@@ -87,3 +87,11 @@ func (c *Client) StartClientLoop() {
 	}
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 }
+
+// cierra la conexion con el server
+func (c *Client) Cleanup() {
+	if c.conn != nil {
+		log.Infof("CERRANDO CONEXION CON EL SERVER, CLIENTE CON ID: %v", c.config.ID)
+		c.conn.Close()
+	}
+}
