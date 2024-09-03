@@ -8,7 +8,7 @@ services:
       - PYTHONUNBUFFERED=1
       - LOGGING_LEVEL=DEBUG
     volumes:
-      - ./server/config.ini:/server/config.ini  # Mapea el archivo config.ini del servidor
+      - ./server/config.ini:/config.ini  # Mapea el archivo config.ini del servidor
     networks:
       - testing_net
 
@@ -20,7 +20,7 @@ services:
       - CLI_ID=1
       - CLI_LOG_LEVEL=DEBUG
     volumes:
-      - ./client/config.yaml:/client/config.yaml  # Mapea el archivo config.py del cliente
+      - ./client/config.yaml:/config.yaml  # Mapea el archivo config.py del cliente
     networks:
       - testing_net
     depends_on:
