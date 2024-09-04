@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
+	"archive/zip"
+	"encoding/csv"
 
 	"github.com/op/go-logging"
 	"github.com/pkg/errors"
@@ -92,6 +95,34 @@ func PrintConfig(v *viper.Viper) {
 	)
 }
 
+func openZipFile() (*zip.ReadCloser, error) {
+	zipPath := "data/dataset.zip"
+	log.Infof("ARCHIVO ZIP QUE VOY A ABRIR: [%v]", zipPath)
+
+
+	log.Infof("ARCHVISO DEL DIRECTORIO ACTUAL:")
+	path := filepath.Join(os.Getenv("PROJECT_DIR"), "data", "dataset.zip")
+	log.Infof("%v", path)
+
+
+	// Abre el archivo ZIP
+	zipFile, err := zip.OpenReader(zipPath)
+	if err != nil {
+		return nil, err
+	}
+	return zipFile, nil
+}
+
+func openCSVFile(ID string, zipFile *zip.ReadCloser) (zip.File, error) {
+	csvFileName := fmt.Sprintf("agency-%v.csv", ID)
+	for _, file := range zipFile.File {
+		if file.Name == csvFileName {
+			return *file, nil
+		}
+	}
+	return zip.File{}, fmt.Errorf("archivo %s no encontrado en el ZIP", csvFileName)
+}
+
 func main() {
 	v, err := InitConfig()
 	if err != nil {
@@ -110,9 +141,33 @@ func main() {
 		ID:            v.GetString("id"),
 		LoopAmount:    v.GetInt("loop.amount"),
 		LoopPeriod:    v.GetDuration("loop.period"),
+		BatchMaxAmount: v.GetInt("batch.maxAmount"),
 	}
 
-	client := common.NewClient(clientConfig)
+	// Abro el archivo zip del dataset
+	zipFile, err := openZipFile()
+	if err != nil {
+		log.Fatalf("No se pudo abrir el archivo ZIP: %v", err)
+	}
+	defer zipFile.Close() // Cierra el archivo ZIP cuando main termine
+
+	// Encuentro el archivo CSV correspondiente a la agencia
+	csvFile, err := openCSVFile(clientConfig.ID, zipFile)
+	if err != nil {
+		log.Fatalf("No se pudo abrir el archivo CSV: %v", err)
+	}
+
+	// Abro el archivo CSV para lectura
+	csvReader, err := csvFile.Open()
+	if err != nil {
+		log.Fatalf("No se pudo abrir el archivo para lectura: %v", err)
+	}
+	defer csvReader.Close() // Cierra el archivo CSV cuando main termine
+
+	reader := csv.NewReader(csvReader)
+
+
+	client := common.NewClient(clientConfig, reader)
 
 	// Canal para capturar señales
 	sigChan := make(chan os.Signal, 1)

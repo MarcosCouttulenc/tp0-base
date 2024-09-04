@@ -4,6 +4,8 @@ import (
 	"net"
 	"time"
 	"os"
+	"fmt"
+	"encoding/csv"
 	"github.com/op/go-logging"
 )
 
@@ -15,19 +17,22 @@ type ClientConfig struct {
 	ServerAddress string
 	LoopAmount    int
 	LoopPeriod    time.Duration
+	BatchMaxAmount int
 }
 
 // Client Entity that encapsulates how
 type Client struct {
 	config ClientConfig
 	conn   net.Conn
+	reader *csv.Reader
 }
 
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
-func NewClient(config ClientConfig) *Client {
+func NewClient(config ClientConfig, reader *csv.Reader) *Client {
 	client := &Client{
 		config: config,
+		reader: reader,
 	}
 	return client
 }
@@ -58,19 +63,44 @@ func (c *Client) CreateMessage(agencia string) *Message {
 	return NewMessage(agencia, nombre, apellido, documento, nacimiento, numero)
 }
 
+
+func (c *Client) ReadCsvRecord() ([]string, error) {
+	record, err := c.reader.Read()
+	if err != nil {
+		return nil, fmt.Errorf("error al leer el registro: %w", err)
+	}
+	return record, nil
+}
+
+func (c *Client) CreateMessageWithCsvRecord(record []string, agencia string) *Message {
+	nombre := record[0]
+	apellido := record[1]
+	documento := record[2]
+	nacimiento := record[3]
+	numero := record[4]
+
+	return NewMessage(agencia, nombre, apellido, documento, nacimiento, numero)
+}
+
+
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
-	// There is an autoincremental msgID to identify every message sent
-	// Messages if the message amount threshold has not been surpassed
+
 	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
 		// Create the connection the server in every loop iteration. Send an
 		c.createClientSocket()
 
 		protocol := NewProtocol(c.conn)
 
-		// TODO: Modify the send to avoid short-write
+		csvRecord, err := c.ReadCsvRecord()
+		if err != nil {
+			log.Fatalf("Error al leer el registro: %v", err)
+		}
 
-		message := c.CreateMessage(c.config.ID)
+
+
+		// message := c.CreateMessage(c.config.ID)
+		message := c.CreateMessageWithCsvRecord(csvRecord, c.config.ID)
 		messageToSend := message.Serialize()
 
 		protocol.SendAll(messageToSend)
