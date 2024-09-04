@@ -74,6 +74,8 @@ func (c *Client) StartClientLoop() {
 		messageToSend := message.Serialize()
 
 		protocol.SendAll(messageToSend)
+		log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v", message.documento, message.numero)
+
 
 		protocol.ReceiveAll(c.config.ID)
 

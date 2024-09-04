@@ -84,6 +84,8 @@ class Server:
 
         store_bets([bet])
 
+        logging.info(f"action: apuesta_almacenada | result: success | dni: {message.documento} | numero: {message.numero}")
+
         logging.info("Bets:")
         for bet in load_bets():
             logging.info(str(bet))
