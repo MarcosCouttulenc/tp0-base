@@ -5,6 +5,7 @@ import (
 )
 
 type Message struct {
+	agencia string
 	nombre string
 	apellido string
 	documento string
@@ -12,8 +13,9 @@ type Message struct {
 	numero string
 }
 
-func NewMessage(nombre string, apellido string, documento string, nacimiento string, numero string) *Message {
+func NewMessage(agencia string, nombre string, apellido string, documento string, nacimiento string, numero string) *Message {
 	message := &Message{
+		agencia: agencia,
 		nombre: nombre,
 		apellido: apellido,
 		documento: documento,
@@ -25,7 +27,8 @@ func NewMessage(nombre string, apellido string, documento string, nacimiento str
 
 func (m *Message) Serialize() string {
 	return fmt.Sprintf(
-		"%s\n%s\n%s\n%s\n%s",
+		"%s\n%s\n%s\n%s\n%s\n%s\n\n",
+		m.agencia,
 		m.nombre,
 		m.apellido,
 		m.documento,

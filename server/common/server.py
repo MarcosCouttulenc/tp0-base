@@ -5,6 +5,8 @@ import threading
 import errno
 
 from .protocol import Protocol
+from .message import Message
+from .utils import Bet, store_bets, load_bets
 
 
 class Server:
@@ -72,9 +74,24 @@ class Server:
 
         protocol = Protocol(client_sock)
 
-        msg = protocol.receiveAll()
+        msgReceived = protocol.receiveAll()
 
-        protocol.sendAll(msg)
+        message = Message(msgReceived)
+
+        addr = client_sock.getpeername()
+
+        bet = Bet(message.agencia, message.nombre, message.apellido, message.documento, message.nacimiento, message.numero)
+
+        store_bets([bet])
+
+        logging.info("Bets:")
+        for bet in load_bets():
+            logging.info(str(bet))
+
+
+
+
+        protocol.sendAll("Success :)\n")
         
         
     

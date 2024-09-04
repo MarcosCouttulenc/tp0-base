@@ -48,14 +48,14 @@ func (c *Client) createClientSocket() error {
 	return nil
 }
 
-func (c *Client) CreateMessage() *Message {
+func (c *Client) CreateMessage(agencia string) *Message {
 	nombre := os.Getenv("NOMBRE")
 	apellido := os.Getenv("APELLIDO")
 	documento := os.Getenv("DOCUMENTO")
 	nacimiento := os.Getenv("NACIMIENTO")
 	numero := os.Getenv("NUMERO")
 
-	return NewMessage(nombre, apellido, documento, nacimiento, numero)
+	return NewMessage(agencia, nombre, apellido, documento, nacimiento, numero)
 }
 
 // StartClientLoop Send messages to the client until some time threshold is met
@@ -70,7 +70,7 @@ func (c *Client) StartClientLoop() {
 
 		// TODO: Modify the send to avoid short-write
 
-		message := c.CreateMessage()
+		message := c.CreateMessage(c.config.ID)
 		messageToSend := message.Serialize()
 
 		protocol.SendAll(messageToSend)
