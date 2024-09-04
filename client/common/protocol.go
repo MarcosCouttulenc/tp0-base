@@ -17,12 +17,11 @@ func NewProtocol(socketServer net.Conn) *Protocol {
 	return protocol
 }
 
-func (p *Protocol) SendAll(ID string, msgID int) {
+func (p *Protocol) SendAll(msg string) {
 	fmt.Fprintf(
 		p.socketServer,
-		"[CLIENT %v] Message N°%v\n",
-		ID,
-		msgID,
+		"%v",
+		msg,
 	)
 }
 

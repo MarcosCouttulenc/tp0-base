@@ -3,7 +3,7 @@ package common
 import (
 	"net"
 	"time"
-
+	"os"
 	"github.com/op/go-logging"
 )
 
@@ -48,6 +48,16 @@ func (c *Client) createClientSocket() error {
 	return nil
 }
 
+func (c *Client) CreateMessage() *Message {
+	nombre := os.Getenv("NOMBRE")
+	apellido := os.Getenv("APELLIDO")
+	documento := os.Getenv("DOCUMENTO")
+	nacimiento := os.Getenv("NACIMIENTO")
+	numero := os.Getenv("NUMERO")
+
+	return NewMessage(nombre, apellido, documento, nacimiento, numero)
+}
+
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
 	// There is an autoincremental msgID to identify every message sent
@@ -60,7 +70,10 @@ func (c *Client) StartClientLoop() {
 
 		// TODO: Modify the send to avoid short-write
 
-		protocol.SendAll(c.config.ID, msgID)
+		message := c.CreateMessage()
+		messageToSend := message.Serialize()
+
+		protocol.SendAll(messageToSend)
 
 		protocol.ReceiveAll(c.config.ID)
 
