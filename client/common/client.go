@@ -179,14 +179,16 @@ func (c *Client) WaitForWinners(protocol *Protocol) {
 			log.Infof("action: pedido de winners enviado | result: success")
 		}
 
-		response, errRcv := protocol.ReceiveAll(c.config.ID)
+		response, errRcv := protocol.ReceiveLastMessage(c.config.ID)
+
+
 
 		if errRcv == io.EOF {
 			log.Infof("action: consulta_ganadores | result: failed | status: no confirmaron todos")
 			time.Sleep(c.config.LoopPeriod)
 			time.Sleep(c.config.LoopPeriod)
 		} else if errRcv == nil {
-			response = response[:len(response)-1]
+			response = response[:len(response)-2]
 			
 			var cantWinners int
 

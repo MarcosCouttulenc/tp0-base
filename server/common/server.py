@@ -89,11 +89,14 @@ class Server:
                     if has_won(bet) and int(bet.agency) == int(agency):
                         winners.append(bet.document)
             
+
             response = WinnersResponse(winners)
+
 
             msgToSend = response.getMessageToSend()
 
             logging.info(f"action: recibi pedido de ganadores | result: success | agency: {message.agency}")
+
 
             protocol.sendAll(msgToSend)
 
