@@ -6,20 +6,23 @@ class Protocol:
     
     def receiveAll(self):
         
-        buffer = ""
+        buffer = b""
         try:
             while True:
-                data = self.socketClient.recv(1024).decode('utf-8')
+                data = self.socketClient.recv(1024)
                 if not data:
                     break
                 buffer += data
-                if '\n\n' in buffer:
+                if b'\n\n' in buffer:
                     break
 
             addr = self.socketClient.getpeername()
-            logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {buffer.strip()}')
-            return buffer.strip()
+            #logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {buffer.strip()}')
+            return buffer[:buffer.index(b'\n\n')].strip().decode('utf-8')
         except OSError as e:
+            logging.error(f"action: receive_message | result: fail | error: {e}")
+            return "Error al recibir msg"
+        except UnicodeDecodeError as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
             return "Error al recibir msg"
 

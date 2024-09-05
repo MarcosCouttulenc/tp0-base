@@ -27,7 +27,7 @@ func NewMessage(agencia string, nombre string, apellido string, documento string
 
 func (m *Message) Serialize() string {
 	return fmt.Sprintf(
-		"%s\n%s\n%s\n%s\n%s\n%s\n\n",
+		"%s\n%s\n%s\n%s\n%s\n%s\n",
 		m.agencia,
 		m.nombre,
 		m.apellido,

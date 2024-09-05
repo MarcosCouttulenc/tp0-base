@@ -4,7 +4,6 @@ import (
 	"net"
 	"time"
 	"os"
-	"fmt"
 	"encoding/csv"
 	"github.com/op/go-logging"
 )
@@ -67,7 +66,7 @@ func (c *Client) CreateMessage(agencia string) *Message {
 func (c *Client) ReadCsvRecord() ([]string, error) {
 	record, err := c.reader.Read()
 	if err != nil {
-		return nil, fmt.Errorf("error al leer el registro: %w", err)
+		return nil, err
 	}
 	return record, nil
 }
@@ -85,31 +84,61 @@ func (c *Client) CreateMessageWithCsvRecord(record []string, agencia string) *Me
 
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
+	endFile := false
 
-	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
-		// Create the connection the server in every loop iteration. Send an
+	for !endFile{
 		c.createClientSocket()
-
 		protocol := NewProtocol(c.conn)
+		batch := ""
+		betsSent := 0
+		// Create the connection the server in every loop iteration. Send an
+		for actualBet := 1; actualBet <= c.config.BatchMaxAmount; actualBet++ {
+			csvRecord, err := c.ReadCsvRecord()
+			if err != nil {
+				if err.Error() == "EOF" {
+					// Final del archivo alcanzado
+					endFile = true
+					break
+				}
+	
+				log.Fatalf("Error al leer el registro: %v", err)
+			}
 
-		csvRecord, err := c.ReadCsvRecord()
-		if err != nil {
-			log.Fatalf("Error al leer el registro: %v", err)
+		message := c.CreateMessageWithCsvRecord(csvRecord, c.config.ID)
+		messageToSend := message.Serialize()
+		batch += messageToSend
+		betsSent += 1
+
+
 		}
+		
 
 
 
 		// message := c.CreateMessage(c.config.ID)
-		message := c.CreateMessageWithCsvRecord(csvRecord, c.config.ID)
-		messageToSend := message.Serialize()
 
-		protocol.SendAll(messageToSend)
-		log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v", message.documento, message.numero)
+		batch += "\n"
+
+		sizeInBytes := len(batch)
+		sizeInKB := float64(sizeInBytes) / 1024
+		
+
+		err := protocol.SendAll(batch)
+		result := "success"
+		if err != nil {
+			result = err.Error()
+			log.Errorf("action: apuestas_enviadas | result: %v | cantidad_enviadas: %v | tam msj: %v KB", result, betsSent, sizeInKB)
+		} else {
+			log.Infof("action: apuestas_enviadas | result: %v | cantidad_enviadas: %v | tam msj: %v KB", result, betsSent, sizeInKB)
+		}
+		
 
 
 		protocol.ReceiveAll(c.config.ID)
 
 		// Wait a time between sending one message and the next one
+
+		batch = ""
 		time.Sleep(c.config.LoopPeriod)
 
 	}

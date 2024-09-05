@@ -64,6 +64,7 @@ class Server:
         self._server_socket.close()  # Cerrar el socket para desbloquear accept()
 
 
+
     def __handle_client_connection(self, client_sock):
         """
         Read message from a specific client socket and closes the socket
@@ -76,19 +77,26 @@ class Server:
 
         msgReceived = protocol.receiveAll()
 
+        if msgReceived == "Error al recibir msg":
+            protocol.sendAll("Error al recibir msg :(\n")
+            return
+
+
         message = Message(msgReceived)
 
-        addr = client_sock.getpeername()
 
-        bet = Bet(message.agencia, message.nombre, message.apellido, message.documento, message.nacimiento, message.numero)
+        bets = message.createBets()
 
-        store_bets([bet])
+        store_bets(bets)
 
-        logging.info(f"action: apuesta_almacenada | result: success | dni: {message.documento} | numero: {message.numero}")
-
-        logging.info("Bets:")
+        cant_bets = 0
         for bet in load_bets():
-            logging.info(str(bet))
+            cant_bets += 1
+
+
+        logging.info(f"action: apuestas_almacenadas | result: success | cantidad de apuestas: {len(bets)} | cant totales: {cant_bets}")
+
+        
 
 
 

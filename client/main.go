@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -97,14 +96,6 @@ func PrintConfig(v *viper.Viper) {
 
 func openZipFile() (*zip.ReadCloser, error) {
 	zipPath := "data/dataset.zip"
-	log.Infof("ARCHIVO ZIP QUE VOY A ABRIR: [%v]", zipPath)
-
-
-	log.Infof("ARCHVISO DEL DIRECTORIO ACTUAL:")
-	path := filepath.Join(os.Getenv("PROJECT_DIR"), "data", "dataset.zip")
-	log.Infof("%v", path)
-
-
 	// Abre el archivo ZIP
 	zipFile, err := zip.OpenReader(zipPath)
 	if err != nil {
