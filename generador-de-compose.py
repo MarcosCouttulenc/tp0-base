@@ -11,7 +11,7 @@ def generar_compose(archivo_salida, cantidad_de_clientes):
     texto_a_escribir += "      - PYTHONUNBUFFERED=1\n"
     texto_a_escribir += "      - LOGGING_LEVEL=DEBUG\n"
     texto_a_escribir += "    volumes:\n"
-    texto_a_escribir += "      - ./server/config.ini:/server/config.ini\n"
+    texto_a_escribir += "      - ./server/config.ini:/config.ini\n"
     texto_a_escribir += "    networks:\n"
     texto_a_escribir += "      - testing_net\n\n"
     
@@ -24,7 +24,7 @@ def generar_compose(archivo_salida, cantidad_de_clientes):
         texto_a_escribir += "      - CLI_ID=1\n"
         texto_a_escribir += "      - CLI_LOG_LEVEL=DEBUG\n"
         texto_a_escribir += "    volumes:\n"
-        texto_a_escribir += "      - ./client/config.yaml:/client/config.yaml\n"
+        texto_a_escribir += "      - ./client/config.yaml:/config.yaml\n"
         texto_a_escribir += "    networks:\n"
         texto_a_escribir += "      - testing_net\n"
         texto_a_escribir += "    depends_on:\n"
