@@ -3,6 +3,7 @@ import logging
 import signal
 import threading
 import errno
+import multiprocessing
 
 from .protocol import Protocol
 from .message import BetMessage, WinnersMessage, ConfirmationMessage, WinnersResponse, getMessage
@@ -18,6 +19,7 @@ class Server:
         self._shutdown_event = threading.Event()
         self.number_clients = int(number_clients)
         self.confirmations = 0
+        self.clients_procesess = []
 
     def run(self):
         """
@@ -32,30 +34,12 @@ class Server:
         # en el metodo _graceful_shutdown
         signal.signal(signal.SIGTERM, self._graceful_shutdown)
 
+        barrier = multiprocessing.Barrier(self.number_clients)
+        lock = multiprocessing.Lock()
 
 
-        try:
-            # una vez que llegue la signal SIGTERM, el ciclo se corta           
-            while not self._shutdown_event.is_set() and self.confirmations < self.number_clients:
-                client_sock = self.__accept_new_connection()
-                # client_sock puede ser un None si llego la SIGTERM mientras
-                # el socket estaba trabado en accept(), que es lo mas probable
-                # que pase siempre.
-                if client_sock:
-                    self.__handle_client_connection(client_sock)
-        except OSError as e:
-            # por si el socket levanta esta excepcion al recibir la signal SIGTERM, creo que no es necesario
-            if e.errno == errno.EINTR:
-                logging.info('SOCKET CERRADO - RUN')
-            else:
-                logging.info('Unknown exception.')
-                raise
-        
-        logging.info('action: sorteo | result: success')
-        # logging.info('-----------TODAS LAS APUESTAS REGISTRADAS----------------------')
-        # una vez que todos los clientes confirmaron que terminaron, tengo que atender a cada uno una vez para 
-        # comunicarles los resultados
-        
+
+
         try:
             # una vez que llegue la signal SIGTERM, el ciclo se corta           
             for i in range(self.number_clients):
@@ -65,7 +49,10 @@ class Server:
                 # el socket estaba trabado en accept(), que es lo mas probable
                 # que pase siempre.
                 if client_sock:
-                    self.__handle_client_winners(client_sock)
+                    process = multiprocessing.Process(target=self.__handle_client_connection, args=(client_sock, barrier, lock))
+                    self.clients_procesess.append(process)
+                    process.start()
+                    # self.__handle_client_connection(client_sock)
         except OSError as e:
             # por si el socket levanta esta excepcion al recibir la signal SIGTERM, creo que no es necesario
             if e.errno == errno.EINTR:
@@ -73,9 +60,14 @@ class Server:
             else:
                 logging.info('Unknown exception.')
                 raise
+        
+        for process in self.clients_procesess:
+            process.join()
+        self.clients_procesess.clear()
+        
 
 
-    def __handle_client_winners(self, client_sock):
+    def __handle_client_winners(self, client_sock, lock):
         try:
             protocol = Protocol(client_sock)
 
@@ -92,9 +84,10 @@ class Server:
 
             winners = []
 
-            for bet in load_bets():
-                if has_won(bet) and int(bet.agency) == int(agency):
-                    winners.append(bet.document)
+            with lock:
+                for bet in load_bets():
+                    if has_won(bet) and int(bet.agency) == int(agency):
+                        winners.append(bet.document)
             
             response = WinnersResponse(winners)
 
@@ -116,54 +109,74 @@ class Server:
 
 
 
-    def __handle_client_connection(self, client_sock):
+    def __handle_client_connection(self, client_sock, barrier, lock):
         """
         Read message from a specific client socket and closes the socket
 
         If a problem arises in the communication with the client, the
         client socket will also be closed
         """
+        
 
         try:
+            confirmationReceived = False
             protocol = Protocol(client_sock)
 
-            msgReceived = protocol.receiveAll()
+            while not confirmationReceived:
+                
 
-            if msgReceived == "Error al recibir msg":
-                protocol.sendAll("Error al recibir msg :(\n")
-                client_sock.close()
-                return
+                msgReceived = protocol.receiveAll()
 
-            message = getMessage(msgReceived)
+                if msgReceived == "Error al recibir msg":
+                    logging.info("ESTOY RECIBIENDO CON UN ERRORRRRRR")
+                    protocol.sendAll("Error al recibir msg :(\n")
+                    client_sock.close()
+                    return
 
-            if type(message) == WinnersMessage:
-                logging.info(f"action: recibi pedido de ganadores | result: fail, no estan todas las confirm | agency: {message.agency}")
-                client_sock.close()
-                return
-            elif type(message) == ConfirmationMessage:
-                self.confirmations += 1
-                logging.info(f"action: recibi confirmacion de agencia: {message.agency}")
-                protocol.sendAll("OK\n")
-                client_sock.close()
-                return
+                message = getMessage(msgReceived)
 
-            # type(message) == BetMessage
+                # a este no deberia entrar nunca
+                if type(message) == WinnersMessage:
+                    logging.info(f"action: recibi pedido de ganadores | result: fail, no estan todas las confirm | agency: {message.agency}")
+                    client_sock.close()
+                    return
+                elif type(message) == ConfirmationMessage:
+                    confirmationReceived = True
+                    logging.info(f"action: recibi confirmacion de agencia: {message.agency}")
+                    protocol.sendAll("OK\n")
+                    break
 
-            bets = message.createBets()
+                # type(message) == BetMessage
 
-            store_bets(bets)
+                bets = message.createBets()
 
-            cant_bets = 0
-            for bet in load_bets():
-                cant_bets += 1
+                with lock:
+                    store_bets(bets)
+                    cant_bets = 0
+                    for bet in load_bets():
+                        cant_bets += 1
 
-            logging.info(f"action: apuestas_almacenadas | result: success | cantidad de apuestas: {len(bets)} | cant totales: {cant_bets}")
+                logging.info(f"action: apuestas_almacenadas | result: success | cantidad de apuestas: {len(bets)} | cant totales: {cant_bets}")
 
-            protocol.sendAll("Success :)\n")
+                protocol.sendAll("Success :)\n")
+            
+            # sali del ciclo porque recibi la confirmacion de que termino de enviar bets
+            # espero a que todos los procesos terminen con las apuestas. Solo el ultimo proceso
+            # imprime el mensaje de sorteo 
+            if barrier.parties - barrier.n_waiting == 1:
+                logging.info("action: sorteo | result: success")    
+
+            barrier.wait() 
+
+            
+                
+            self.__handle_client_winners(client_sock, lock)
+
         except OSError as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
         finally:
-            client_sock.close()
+            #client_sock.close()
+            a=2
         
 
     

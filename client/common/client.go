@@ -88,9 +88,11 @@ func (c *Client) CreateMessageWithCsvRecord(record []string, agencia string) *Me
 func (c *Client) StartClientLoop() {
 	endFile := false
 
+	c.createClientSocket()
+	protocol := NewProtocol(c.conn)
+
 	for !endFile{
-		c.createClientSocket()
-		protocol := NewProtocol(c.conn)
+		
 		batch := "BET\n"
 		betsSent := 0
 		// Create the connection the server in every loop iteration. Send an
@@ -143,11 +145,12 @@ func (c *Client) StartClientLoop() {
 
 
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+
+	c.SendConfirmation(protocol)
+	c.WaitForWinners(protocol)
 }
 
-func (c *Client) SendConfirmation() {
-	c.createClientSocket()
-	protocol := NewProtocol(c.conn)
+func (c *Client) SendConfirmation(protocol *Protocol) {
 	msg := "CONFIRMATION\n"
 	msg += c.config.ID + "\n\n"
 	err := protocol.SendAll(msg)
@@ -164,18 +167,16 @@ func (c *Client) SendConfirmation() {
 	}
 }
 
-func (c *Client) WaitForWinners() {
+func (c *Client) WaitForWinners(protocol *Protocol) {
 	for true {
-		c.createClientSocket()
-		protocol := NewProtocol(c.conn)
 		msg := "WINNERS\n"
 		msg += c.config.ID + "\n\n"
 		err := protocol.SendAll(msg)
 		if err != nil {
 			result := err.Error()
-			log.Errorf("action: apuestas_enviadas | result: %v", result)
+			log.Errorf("action: pedido de winners enviado | result: %v", result)
 		} else {
-			log.Infof("action: apuestas_enviadas | result: success")
+			log.Infof("action: pedido de winners enviado | result: success")
 		}
 
 		response, errRcv := protocol.ReceiveAll(c.config.ID)

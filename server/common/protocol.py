@@ -43,5 +43,4 @@ class Protocol:
                 total_sent += sent
         except OSError as e:
             logging.error(f"action: send_message | result: fail | error: {e}")
-        finally:
-            self.socketClient.close()
+
