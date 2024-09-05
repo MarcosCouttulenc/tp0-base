@@ -51,8 +51,8 @@ class Server:
                 logging.info('Unknown exception.')
                 raise
         
-
-        logging.info('-----------TODAS LAS APUESTAS REGISTRADAS----------------------')
+        logging.info('action: sorteo | result: success')
+        # logging.info('-----------TODAS LAS APUESTAS REGISTRADAS----------------------')
         # una vez que todos los clientes confirmaron que terminaron, tengo que atender a cada uno una vez para 
         # comunicarles los resultados
         
@@ -100,7 +100,7 @@ class Server:
 
             msgToSend = response.getMessageToSend()
 
-            logging.info(f"ENVIANDO GANADORES | msg: {msgToSend} | result: success | agency: {agency}")
+            logging.info(f"action: recibi pedido de ganadores | result: success | agency: {message.agency}")
 
             protocol.sendAll(msgToSend)
 
@@ -137,12 +137,12 @@ class Server:
             message = getMessage(msgReceived)
 
             if type(message) == WinnersMessage:
-                logging.info(f"TODAVIA NO TERMINARON TODOS, NO PIDAS CLIENTE: {message.agency}")
+                logging.info(f"action: recibi pedido de ganadores | result: fail, no estan todas las confirm | agency: {message.agency}")
                 client_sock.close()
                 return
             elif type(message) == ConfirmationMessage:
                 self.confirmations += 1
-                logging.info(f"LLEGO CONFIRMACION DE CLIENTE: {message.agency}")
+                logging.info(f"action: recibi confirmacion de agencia: {message.agency}")
                 protocol.sendAll("OK\n")
                 client_sock.close()
                 return
@@ -177,7 +177,7 @@ class Server:
         """
 
 
-        logging.info('action: accept_connections | result: in_progress')
+        # logging.info('action: accept_connections | result: in_progress')
         try:
             c, addr = self._server_socket.accept()
             logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
@@ -189,8 +189,3 @@ class Server:
             else:
                 raise
 
-        # Connection arrived
-        #logging.info('action: accept_connections | result: in_progress')
-        #c, addr = self._server_socket.accept()
-        #logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
-        #return c

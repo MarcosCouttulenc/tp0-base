@@ -55,7 +55,7 @@ func (p *Protocol) ReceiveAll(ID string) (string, error){
 		}
 	}
 
-	log.Infof("action: receive_message | result: success | client_id: %v | msg: %v", ID, msg)
+	// log.Infof("action: receive_message | result: success | client_id: %v | msg: %v", ID, msg)
 	return msg, nil
 
 

@@ -8,7 +8,6 @@ import (
 	"encoding/csv"
 	"github.com/op/go-logging"
 	"strings"
-	"fmt"
 )
 
 var log = logging.MustGetLogger("log")
@@ -129,7 +128,11 @@ func (c *Client) StartClientLoop() {
 			log.Infof("action: apuestas_enviadas | result: %v | cantidad_enviadas: %v | tam msj: %v KB", result, betsSent, sizeInKB)
 		}
 
-		protocol.ReceiveAll(c.config.ID)
+		response, errRcv := protocol.ReceiveAll(c.config.ID)
+
+		if errRcv == nil {
+			log.Infof("action: respuesta a apuestas enviadas | result: %v", response)
+		}
 
 		// Wait a time between sending one message and the next one
 
@@ -152,9 +155,13 @@ func (c *Client) SendConfirmation() {
 		result := err.Error()
 		log.Errorf("action: confirmacion_enviada | result: %v", result)
 	} else {
-		log.Infof("action: apuestas_enviadas | result: success")
+		log.Infof("action: confirmacion_enviada | result: success")
 	}
-	protocol.ReceiveAll(c.config.ID)
+	response, errRcv := protocol.ReceiveAll(c.config.ID)
+
+	if errRcv == nil {
+		log.Infof("action: respuesta a confirmacion enviada | result: %v", response)
+	}
 }
 
 func (c *Client) WaitForWinners() {
@@ -166,35 +173,30 @@ func (c *Client) WaitForWinners() {
 		err := protocol.SendAll(msg)
 		if err != nil {
 			result := err.Error()
-			log.Errorf("PETICION DE WINNERS ENVIADA | result: %v", result)
+			log.Errorf("action: apuestas_enviadas | result: %v", result)
 		} else {
-			log.Infof("PETICION DE WINNERS ENVIADA | result: success")
+			log.Infof("action: apuestas_enviadas | result: success")
 		}
 
 		response, errRcv := protocol.ReceiveAll(c.config.ID)
 
 		if errRcv == io.EOF {
-			log.Infof("NO ESTAN LOS WINNERS")
+			log.Infof("action: consulta_ganadores | result: failed | status: no confirmaron todos")
 			time.Sleep(c.config.LoopPeriod)
 			time.Sleep(c.config.LoopPeriod)
 		} else if errRcv == nil {
 			response = response[:len(response)-1]
 			
-			cantWinners := 456
-			formatted := "anashei" 
+			var cantWinners int
 
 			if len(response) == 0 {
-				formatted = ""
 				cantWinners = 0
 			} else {
 				winners := strings.Split(response, "\n")
 				cantWinners = len(winners)
-
-				formatted = fmt.Sprintf("[%s]", strings.Join(winners, ", "))
 			}
 			
-
-			log.Infof("CANT WINNERS: %v  |  WINNERS: %v" ,cantWinners, formatted)
+			log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", cantWinners)
 			break
 		}
 
