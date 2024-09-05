@@ -10,6 +10,7 @@ def generar_compose(archivo_salida, cantidad_de_clientes):
     texto_a_escribir += "    environment:\n"
     texto_a_escribir += "      - PYTHONUNBUFFERED=1\n"
     texto_a_escribir += "      - LOGGING_LEVEL=DEBUG\n"
+    texto_a_escribir += f"      - NUMBER_CLIENTS={cantidad_de_clientes}\n"
     texto_a_escribir += "    volumes:\n"
     texto_a_escribir += "      - ./server/config.ini:/server/config.ini\n"
     texto_a_escribir += "    networks:\n"

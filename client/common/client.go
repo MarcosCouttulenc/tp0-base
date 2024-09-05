@@ -4,8 +4,11 @@ import (
 	"net"
 	"time"
 	"os"
+	"io"
 	"encoding/csv"
 	"github.com/op/go-logging"
+	"strings"
+	"fmt"
 )
 
 var log = logging.MustGetLogger("log")
@@ -89,7 +92,7 @@ func (c *Client) StartClientLoop() {
 	for !endFile{
 		c.createClientSocket()
 		protocol := NewProtocol(c.conn)
-		batch := ""
+		batch := "BET\n"
 		betsSent := 0
 		// Create the connection the server in every loop iteration. Send an
 		for actualBet := 1; actualBet <= c.config.BatchMaxAmount; actualBet++ {
@@ -111,18 +114,12 @@ func (c *Client) StartClientLoop() {
 
 
 		}
-		
-
-
-
-		// message := c.CreateMessage(c.config.ID)
 
 		batch += "\n"
 
 		sizeInBytes := len(batch)
 		sizeInKB := float64(sizeInBytes) / 1024
 		
-
 		err := protocol.SendAll(batch)
 		result := "success"
 		if err != nil {
@@ -131,8 +128,6 @@ func (c *Client) StartClientLoop() {
 		} else {
 			log.Infof("action: apuestas_enviadas | result: %v | cantidad_enviadas: %v | tam msj: %v KB", result, betsSent, sizeInKB)
 		}
-		
-
 
 		protocol.ReceiveAll(c.config.ID)
 
@@ -142,8 +137,71 @@ func (c *Client) StartClientLoop() {
 		time.Sleep(c.config.LoopPeriod)
 
 	}
+
+
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 }
+
+func (c *Client) SendConfirmation() {
+	c.createClientSocket()
+	protocol := NewProtocol(c.conn)
+	msg := "CONFIRMATION\n"
+	msg += c.config.ID + "\n\n"
+	err := protocol.SendAll(msg)
+	if err != nil {
+		result := err.Error()
+		log.Errorf("action: confirmacion_enviada | result: %v", result)
+	} else {
+		log.Infof("action: apuestas_enviadas | result: success")
+	}
+	protocol.ReceiveAll(c.config.ID)
+}
+
+func (c *Client) WaitForWinners() {
+	for true {
+		c.createClientSocket()
+		protocol := NewProtocol(c.conn)
+		msg := "WINNERS\n"
+		msg += c.config.ID + "\n\n"
+		err := protocol.SendAll(msg)
+		if err != nil {
+			result := err.Error()
+			log.Errorf("PETICION DE WINNERS ENVIADA | result: %v", result)
+		} else {
+			log.Infof("PETICION DE WINNERS ENVIADA | result: success")
+		}
+
+		response, errRcv := protocol.ReceiveAll(c.config.ID)
+
+		if errRcv == io.EOF {
+			log.Infof("NO ESTAN LOS WINNERS")
+			time.Sleep(c.config.LoopPeriod)
+			time.Sleep(c.config.LoopPeriod)
+		} else if errRcv == nil {
+			response = response[:len(response)-1]
+			
+			cantWinners := 456
+			formatted := "anashei" 
+
+			if len(response) == 0 {
+				formatted = ""
+				cantWinners = 0
+			} else {
+				winners := strings.Split(response, "\n")
+				cantWinners = len(winners)
+
+				formatted = fmt.Sprintf("[%s]", strings.Join(winners, ", "))
+			}
+			
+
+			log.Infof("CANT WINNERS: %v  |  WINNERS: %v" ,cantWinners, formatted)
+			break
+		}
+
+	}
+}
+
+
 
 // cierra la conexion con el server
 func (c *Client) Cleanup() {

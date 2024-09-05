@@ -2,9 +2,9 @@ from .utils import Bet
 
 PARAMS_PER_BET = 6
 
-class Message:
-    def __init__(self, msg):
-        self.params = msg.split('\n')
+class BetMessage:
+    def __init__(self, params):
+        self.params = params
 
     
     def createBets(self):
@@ -23,5 +23,42 @@ class Message:
             bets.append(newBet)
 
         return bets
+
+
+class WinnersMessage:
+    def __init__(self, agency):
+        self.agency = agency
+
+class WinnersResponse:
+    def __init__(self, winners):
+        self.winners = winners
+    
+    def getMessageToSend(self):
+        msg = "\n".join(self.winners)
+        msg += "\n\n"
+        return msg
+
+
+
+class ConfirmationMessage:
+    def __init__(self, agency):
+        self.agency = agency
+
+
+def getMessage(msg):
+    params = msg.split('\n')
+    typeMessage = params[0]
+    params.pop(0)
+
+    if typeMessage == "BET":
+        return BetMessage(params)
+    elif typeMessage == "WINNERS":
+        return WinnersMessage(params[0])
+    elif typeMessage == "CONFIRMATION":
+        return ConfirmationMessage(params[0])
+
+
+
+        
 
 

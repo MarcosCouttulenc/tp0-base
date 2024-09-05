@@ -172,4 +172,6 @@ func main() {
 	}()
 
 	client.StartClientLoop()
+	client.SendConfirmation()
+	client.WaitForWinners()
 }

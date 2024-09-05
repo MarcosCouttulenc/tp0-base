@@ -2,8 +2,8 @@ package common
 
 import (
 	"bufio"
-	"io"
 	"net"
+	"io"
 	//"fmt"
 )
 
@@ -42,8 +42,7 @@ func (p *Protocol) ReceiveAll(ID string) (string, error){
 		msg += part
 
 		if err == io.EOF {
-			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v", ID, err)
-			break
+			return "", err
 		}
 
 		if err != nil {

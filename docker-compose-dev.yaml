@@ -7,8 +7,9 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - LOGGING_LEVEL=DEBUG
+      - NUMBER_CLIENTS=2
     volumes:
-      - ./server/config.ini:/config.ini  # Mapea el archivo config.ini del servidor
+      - ./server/config.ini:/server/config.ini
     networks:
       - testing_net
 
@@ -19,13 +20,22 @@ services:
     environment:
       - CLI_ID=1
       - CLI_LOG_LEVEL=DEBUG
-      - NOMBRE=Santiago Lionel
-      - APELLIDO=Lorca
-      - DOCUMENTO=30904465
-      - NACIMIENTO=1999-03-17
-      - NUMERO=7574
     volumes:
-      - ./client/config.yaml:/config.yaml  # Mapea el archivo config.py del cliente
+      - ./client/config.yaml:/config.yaml
+    networks:
+      - testing_net
+    depends_on:
+      - server
+
+  client2:
+    container_name: client2
+    image: client:latest
+    entrypoint: /client
+    environment:
+      - CLI_ID=2
+      - CLI_LOG_LEVEL=DEBUG
+    volumes:
+      - ./client/config.yaml:/config.yaml
     networks:
       - testing_net
     depends_on:
@@ -37,3 +47,4 @@ networks:
       driver: default
       config:
         - subnet: 172.25.125.0/24
+
