@@ -3,8 +3,8 @@ server:
   address: "server:12345"
 loop:
   amount: 5
-  period: "5s"
+  period: "1s"
 log:
   level: "INFO"
 batch:
-  maxAmount: 100
+  maxAmount: 160
